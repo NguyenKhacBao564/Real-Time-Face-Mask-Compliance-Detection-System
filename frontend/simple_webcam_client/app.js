@@ -5,7 +5,10 @@ const statusEl = document.getElementById("status");
 const correctEl = document.getElementById("correct");
 const incorrectEl = document.getElementById("incorrect");
 const noMaskEl = document.getElementById("no-mask");
+const fpsEl = document.getElementById("fps");
 const latencyEl = document.getElementById("latency");
+const violationLogEl = document.getElementById("violation-log");
+const stageEl = document.querySelector(".stage");
 
 const captureCanvas = document.createElement("canvas");
 const captureCtx = captureCanvas.getContext("2d");
@@ -18,10 +21,26 @@ const colors = {
 
 let socket;
 let latestDetections = [];
+let lastMessageAt = performance.now();
+let smoothedFps = 0;
 
 function resizeCanvas() {
-  overlay.width = video.videoWidth || overlay.clientWidth;
-  overlay.height = video.videoHeight || overlay.clientHeight;
+  const videoWidth = video.videoWidth || 1;
+  const videoHeight = video.videoHeight || 1;
+  const stageWidth = stageEl.clientWidth;
+  const stageHeight = stageEl.clientHeight;
+  const scale = Math.min(stageWidth / videoWidth, stageHeight / videoHeight);
+  const renderedWidth = Math.round(videoWidth * scale);
+  const renderedHeight = Math.round(videoHeight * scale);
+  const offsetX = Math.round((stageWidth - renderedWidth) / 2);
+  const offsetY = Math.round((stageHeight - renderedHeight) / 2);
+
+  overlay.width = videoWidth;
+  overlay.height = videoHeight;
+  overlay.style.width = `${renderedWidth}px`;
+  overlay.style.height = `${renderedHeight}px`;
+  overlay.style.left = `${offsetX}px`;
+  overlay.style.top = `${offsetY}px`;
 }
 
 function drawDetections() {
@@ -44,7 +63,25 @@ function updateMetrics(payload) {
   correctEl.textContent = counts.correct_mask || 0;
   incorrectEl.textContent = counts.incorrect_mask || 0;
   noMaskEl.textContent = counts.no_mask || 0;
+  fpsEl.textContent = smoothedFps.toFixed(1);
   latencyEl.textContent = `${payload.latency_ms || 0} ms`;
+}
+
+function addViolationLog(payload) {
+  const counts = payload.counts || {};
+  const violations = (counts.incorrect_mask || 0) + (counts.no_mask || 0);
+  if (!violations) {
+    return;
+  }
+
+  const item = document.createElement("li");
+  const time = new Date().toLocaleTimeString();
+  item.textContent = `${time} - incorrect: ${counts.incorrect_mask || 0}, no mask: ${counts.no_mask || 0}`;
+  violationLogEl.prepend(item);
+
+  while (violationLogEl.children.length > 8) {
+    violationLogEl.removeChild(violationLogEl.lastElementChild);
+  }
 }
 
 function sendFrame() {
@@ -74,6 +111,11 @@ async function start() {
   });
 
   socket.addEventListener("message", (event) => {
+    const now = performance.now();
+    const instantFps = 1000 / Math.max(1, now - lastMessageAt);
+    smoothedFps = smoothedFps ? smoothedFps * 0.8 + instantFps * 0.2 : instantFps;
+    lastMessageAt = now;
+
     const payload = JSON.parse(event.data);
     if (payload.error) {
       statusEl.textContent = payload.error;
@@ -81,6 +123,7 @@ async function start() {
     }
     latestDetections = payload.detections || [];
     updateMetrics(payload);
+    addViolationLog(payload);
     drawDetections();
   });
 
@@ -92,4 +135,3 @@ async function start() {
 start().catch((error) => {
   statusEl.textContent = error.message;
 });
-

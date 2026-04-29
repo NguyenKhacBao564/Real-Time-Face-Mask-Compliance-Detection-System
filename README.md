@@ -95,11 +95,13 @@ Dataset strategy is documented in [Dataset.md](Dataset.md).
 
 Short version:
 
-1. Use a YOLO-format dataset for the first baseline.
-2. Use a 3-class dataset to add or fine-tune `incorrect_mask`.
-3. Do not merge datasets blindly.
-4. Do not commit raw datasets, model weights, training runs, or generated outputs to Git.
+1. Use `andrewmvd/face-mask-detection` only as a smoke test if needed.
+2. Use PWMFD as the first real 3-class baseline dataset.
+3. Use FMLD later to improve `incorrect_mask` robustness.
+4. Do not merge datasets blindly; audit class balance and label quality first.
 5. Treat `MaskedFace-Net` as a future classification/pretraining resource, not the MVP YOLO detection dataset.
+
+The main project risk is the `incorrect_mask` class. It is usually much rarer than `correct_mask` and `no_mask`, so results must report per-class precision and recall honestly.
 
 ## Vast.ai Training Plan
 
@@ -112,6 +114,19 @@ Short version:
 3. Convert/audit into `data/mask_detection/`.
 4. Train YOLO from `data/mask_detection/data.yaml`.
 5. Save only metrics, config, and download links in Git; store large weights externally.
+
+## Real-Time Target
+
+Use explicit benchmark targets so "real-time" is measurable:
+
+| Environment | Target |
+| --- | --- |
+| Local laptop CPU | at least 8-12 FPS at 640px input |
+| Vast.ai / GPU demo | at least 20 FPS at 640px input |
+| Cheap CPU server | at least 5 FPS with frame skipping |
+| Latency report | average and p95 latency, with hardware specs |
+
+If the project misses a target, keep the number and explain the bottleneck. Honest measurement is better than an inflated demo result.
 
 ## Target Repository Structure
 
@@ -219,6 +234,24 @@ Minimum report:
 | Latency | average and p95 if possible |
 | Model size | `.pt` and exported model size |
 
+Recommended result tables:
+
+```text
+Model comparison:
+- smoke-test YOLOv8n on andrewmvd
+- YOLOv8n on PWMFD
+- optional YOLOv8s or ONNXRuntime benchmark
+
+Per-class metrics:
+- correct_mask precision / recall
+- incorrect_mask precision / recall
+- no_mask precision / recall
+```
+
+## Privacy And Ethics
+
+This project detects mask compliance on face regions, but it must not identify people. The MVP should not store names, embeddings, or face recognition data. Violation snapshots are for debugging/demo only and should be disabled or cleaned before public deployment unless all subjects consent. Any demo video should use the owner, consenting friends, or synthetic/sample footage. Dataset licenses and attribution must be documented before publishing trained weights.
+
 ## Final CV Direction
 
 Target bullet:
@@ -232,3 +265,5 @@ Built and deployed a real-time face mask compliance detection system using YOLO,
 - [Ultralytics YOLO documentation](https://docs.ultralytics.com/)
 - [FastAPI WebSocket documentation](https://fastapi.tiangolo.com/advanced/websockets/)
 - [Docker Compose documentation](https://docs.docker.com/compose/)
+- [PWMFD dataset](https://github.com/ethancvaa/Properly-Wearing-Masked-Detect-Dataset)
+- [FMLD dataset](https://github.com/borutb-fri/FMLD)

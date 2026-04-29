@@ -1,6 +1,6 @@
 # Dataset Plan
 
-This project needs an object detection dataset, not only a face classification dataset. The training target is one YOLO detector with three classes:
+This project needs an object detection dataset, not only a face classification dataset. The target is one YOLO detector with three classes:
 
 ```yaml
 names:
@@ -9,70 +9,91 @@ names:
   2: no_mask
 ```
 
-## Recommendation
+## Recommended Strategy
 
-Use this staged approach:
+Use this staged dataset plan:
 
 ```text
-V1 baseline:
-Use a clean YOLO-format dataset to verify the full training pipeline.
+Stage 1: smoke test
+Dataset: andrewmvd/face-mask-detection
+Goal: verify download -> convert -> audit -> train -> predict works.
+Metric expectation: not important.
 
-V2 3-class model:
-Use a dataset with incorrect_mask annotations and convert it to YOLO if needed.
+Stage 2: first real baseline
+Dataset: PWMFD
+Goal: train the first presentable 3-class YOLOv8n model.
+Metric expectation: present mAP and per-class precision/recall honestly.
 
-V3 real-world test:
-Collect 100-300 webcam frames for evaluation only, not for training at first.
+Stage 3: improve incorrect_mask
+Dataset: PWMFD + FMLD, merged only after audit.
+Goal: improve recall and robustness for incorrectly worn masks.
+
+Stage 4: real-world test
+Dataset: 100-200 self-collected webcam frames.
+Goal: evaluate domain gap only; do not train on these frames first.
 ```
 
-Do not merge a large 2-class dataset and a small 3-class dataset blindly. That can make `incorrect_mask` underrepresented and unreliable.
+The main risk is `incorrect_mask`. It is a minority class in many public datasets, so the project must report per-class metrics instead of hiding behind overall mAP.
 
 ## Dataset Comparison
 
 | Dataset | Format | Classes | Best role | Main concern |
 | --- | --- | --- | --- | --- |
-| `parot99/face-mask-detection-yolo-darknet-format` | YOLO/Darknet | `mask`, `no-mask` | Primary 2-class baseline | No `incorrect_mask` class |
-| `andrewmvd/face-mask-detection` | PASCAL VOC | `with_mask`, `without_mask`, `mask_worn_incorrectly` | 3-class fine-tune / auxiliary dataset | Small dataset, needs VOC to YOLO conversion |
-| `aditya276/face-mask-dataset-yolo-format` | YOLO | mostly `with_mask`, `without_mask` | Fast backup baseline | Less useful for `incorrect_mask` |
-| `cabani/MaskedFace-Net` | face-level images | correctly masked, incorrectly masked | Future classification/pretraining experiment | Very large, not YOLO full-scene detection data |
+| PWMFD | PASCAL VOC XML | `face_with_mask`, `face_with_mask_incorrect`, `face_without_mask` | First real 3-class baseline | Incorrect-mask class is still much smaller than other classes |
+| FMLD | PASCAL VOC XML annotations | `masked_face`, `incorrectly_masked_face`, `unmasked_face` | Improve `incorrect_mask` and real-world robustness | Requires MAFA/WIDER source images and more preprocessing |
+| `andrewmvd/face-mask-detection` | PASCAL VOC XML | `with_mask`, `without_mask`, `mask_worn_incorrectly` | Fast smoke test | Too small for final model |
+| AIZOO FaceMaskDetection | custom/source repo | `face`, `face_mask` | Optional 2-class reference baseline | No `incorrect_mask` class |
+| `parot99/face-mask-detection-yolo-darknet-format` | YOLO/Darknet | `mask`, `no-mask` | Backup 2-class baseline | No `incorrect_mask` class |
+| `aditya276/face-mask-dataset-yolo-format` | YOLO | mostly `with_mask`, `without_mask` | Fast backup baseline | Less useful for compliance |
+| `cabani/MaskedFace-Net` | face-level images | correctly masked, incorrectly masked | Future classifier/pretraining experiment | Very large, synthetic face crops, no YOLO scene bboxes, no `no_mask` |
+
+Notes from source checks:
+
+- PWMFD reports 9,205 images and 18,532 labeled instances, with train/validation splits and three mask-wearing states.
+- FMLD reports 63,072 face images, annotations derived from MAFA and WIDER Face, three mask states, and PASCAL VOC XML annotation files.
+- AIZOO reports 7,971 images from WIDER Face and MAFA for face mask detection, but it is a 2-class direction.
 
 ## Is MaskedFace-Net Actually Bad?
 
 No. `MaskedFace-Net` is not a bad dataset. It is just not the right first dataset for this MVP.
 
-The project page describes it as a dataset of human faces with correctly and incorrectly worn masks based on FFHQ. It has 133,783 images: 67,049 correctly masked face images and 66,734 incorrectly masked face images. The downloads are large: about 19 GB for CMFD and 19 GB for IMFD.
+Why it is not ideal for the current YOLO detector:
 
-Why it is not ideal for this MVP:
-
-1. It is face-level data, not a ready YOLO full-scene object detection dataset.
-2. It does not directly provide the `no_mask` class needed for the final 3-class detector.
-3. It is too large for quick iteration on Vast.ai unless there is a strong reason.
-4. It has a non-commercial ShareAlike-style license, so public portfolio and reuse need careful attribution and license handling.
-5. Using it would likely push the project toward a classifier pipeline instead of the simpler YOLO detector MVP.
+1. It is face-level crop data, not ready full-scene YOLO detection data.
+2. It does not directly provide the `no_mask` class.
+3. It is synthetic, so the visual domain can differ from webcam footage.
+4. It is about 38 GB total, which slows Vast.ai iteration.
+5. Its CC BY-NC-SA style license needs care for public portfolio and model reuse.
 
 When it could be useful:
 
 ```text
 Future work:
 - train a correct_mask vs incorrect_mask classifier
-- pretrain a face crop classifier
-- create a two-stage pipeline: face detector -> mask correctness classifier
-- build a research comparison, not the MVP
+- pretrain a two-stage face-crop classifier
+- experiment with copy-paste augmentation for rare incorrect_mask examples
 ```
 
-For the current project, use `MaskedFace-Net` only as a documented future improvement.
+For the current project, keep it as future work.
 
 ## Class Mapping
 
-Normalize all labels to this schema:
+Normalize source labels to the project schema:
 
 | Source label | Project label |
 | --- | --- |
+| `face_with_mask` | `correct_mask` |
 | `with_mask` | `correct_mask` |
 | `mask` | `correct_mask` |
+| `masked_face` | `correct_mask` |
+| `face_without_mask` | `no_mask` |
 | `without_mask` | `no_mask` |
 | `no-mask` | `no_mask` |
+| `unmasked_face` | `no_mask` |
+| `face_with_mask_incorrect` | `incorrect_mask` |
 | `mask_worn_incorrectly` | `incorrect_mask` |
 | `mask_weared_incorrect` | `incorrect_mask` |
+| `incorrectly_masked_face` | `incorrect_mask` |
 
 ## YOLO Dataset Layout
 
@@ -174,7 +195,9 @@ models/*.onnx
 
 ## References
 
+- [PWMFD: Properly-Wearing-Masked Detect Dataset](https://github.com/ethancvaa/Properly-Wearing-Masked-Detect-Dataset)
+- [FMLD: Face Mask Label Dataset](https://github.com/borutb-fri/FMLD)
+- [FMLD paper: How to Correctly Detect Face-Masks for COVID-19](https://www.mdpi.com/2076-3417/11/5/2070)
+- [AIZOO FaceMaskDetection](https://github.com/AIZOOTech/FaceMaskDetection)
 - [MaskedFace-Net GitHub](https://github.com/cabani/MaskedFace-Net)
-- [Kaggle: parot99 Face Mask Detection YOLO Darknet Format](https://www.kaggle.com/datasets/parot99/face-mask-detection-yolo-darknet-format)
 - [Kaggle: andrewmvd Face Mask Detection](https://www.kaggle.com/datasets/andrewmvd/face-mask-detection)
-- [Kaggle: aditya276 Face Mask Dataset YOLO Format](https://www.kaggle.com/datasets/aditya276/face-mask-dataset-yolo-format)

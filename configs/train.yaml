@@ -5,6 +5,5 @@ image_size: 640
 batch: 16
 device: 0
 project: runs/train
-name: mask_yolov8n_baseline
+name: mask_yolov8n_pwmfd_baseline
 patience: 15
-

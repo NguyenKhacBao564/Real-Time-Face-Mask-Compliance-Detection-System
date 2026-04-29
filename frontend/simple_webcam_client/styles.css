@@ -36,7 +36,8 @@ canvas {
 
 canvas {
   position: absolute;
-  inset: 0;
+  inset: auto;
+  pointer-events: none;
 }
 
 .panel {
@@ -71,6 +72,24 @@ h1 {
   padding: 12px 0;
 }
 
+.violations {
+  margin-top: 28px;
+}
+
+.violations h2 {
+  margin: 0 0 10px;
+  font-size: 15px;
+}
+
+.violations ol {
+  display: grid;
+  gap: 8px;
+  margin: 0;
+  padding-left: 20px;
+  color: #52616f;
+  font-size: 13px;
+}
+
 dt {
   color: #52616f;
 }
@@ -91,4 +110,3 @@ dd {
     border-top: 1px solid #d7dde4;
   }
 }
-

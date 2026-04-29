@@ -32,8 +32,8 @@ Vast.ai instance:
 For the current MVP, the best workflow is:
 
 ```text
-1. Auto-download Kaggle datasets on Vast.ai.
-2. Convert/audit them on Vast.ai.
+1. Download or upload raw dataset sources to data/raw/ on Vast.ai.
+2. Convert/audit them into YOLO format on Vast.ai.
 3. Train the model.
 4. Download only results, metrics, and final weights.
 5. Optionally upload a processed dataset archive to external storage for future repeat runs.
@@ -41,7 +41,11 @@ For the current MVP, the best workflow is:
 
 ## Should Vast.ai Download the Dataset Automatically?
 
-Yes, for normal-sized Kaggle datasets. It is better than manually uploading data every time.
+Yes, when the dataset has a stable direct download or Kaggle source. It is better than manually uploading data every time.
+
+For PWMFD, the repository points to external OneDrive/Baidu downloads. If direct download automation is unreliable, download the train/validation archives locally once, upload them to private cloud storage, then let Vast.ai download that archive.
+
+For FMLD, the annotations are on GitHub, but the underlying MAFA/WIDER Face images must be downloaded separately. Treat FMLD as Stage 3, not the first Vast.ai run.
 
 Recommended:
 
@@ -96,8 +100,22 @@ Example dataset download:
 ```python
 import kagglehub
 
-path = kagglehub.dataset_download("parot99/face-mask-detection-yolo-darknet-format")
+path = kagglehub.dataset_download("andrewmvd/face-mask-detection")
 print("Dataset path:", path)
+```
+
+Generic VOC-to-YOLO conversion after downloading a PASCAL VOC style dataset:
+
+```bash
+python scripts/convert_dataset.py \
+  --source data/raw/pwmfd \
+  --target data/mask_detection
+```
+
+Then audit:
+
+```bash
+python scripts/audit_dataset.py --dataset data/mask_detection
 ```
 
 ## Training Command
@@ -114,6 +132,12 @@ yolo detect train \
   device=0 \
   project=runs/train \
   name=mask_yolov8n_baseline
+```
+
+Recommended first real run name:
+
+```text
+mask_yolov8n_pwmfd_baseline
 ```
 
 If GPU memory is limited:

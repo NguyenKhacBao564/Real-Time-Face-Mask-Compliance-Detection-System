@@ -8,6 +8,7 @@ from fastapi import APIRouter, WebSocket, WebSocketDisconnect
 
 from src.inference.predictor import MaskDetector
 from src.utils.config import load_app_config
+from src.utils.snapshots import has_violation, save_violation_snapshot
 
 router = APIRouter()
 
@@ -32,6 +33,10 @@ def get_predictor() -> MaskDetector:
 async def detect_websocket(websocket: WebSocket) -> None:
     await websocket.accept()
     frame_id = 0
+    config = load_app_config()
+    runtime = config.get("runtime", {})
+    save_snapshots = bool(runtime.get("save_violation_snapshots", True))
+    snapshot_dir = runtime.get("snapshot_dir", "outputs/snapshots")
 
     try:
         while True:
@@ -60,7 +65,8 @@ async def detect_websocket(websocket: WebSocket) -> None:
             latency_ms = (time.perf_counter() - started) * 1000
             result["frame_id"] = frame_id
             result["latency_ms"] = round(latency_ms, 2)
+            if save_snapshots and has_violation(result):
+                result["snapshot_path"] = save_violation_snapshot(image_bytes, snapshot_dir, frame_id)
             await websocket.send_json(result)
     except WebSocketDisconnect:
         return
-
