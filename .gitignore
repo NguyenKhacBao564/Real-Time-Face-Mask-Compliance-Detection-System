@@ -1,0 +1,36 @@
+# Python
+__pycache__/
+*.py[cod]
+*.pyo
+.pytest_cache/
+.mypy_cache/
+.ruff_cache/
+.coverage
+htmlcov/
+
+# Virtual environments
+.venv/
+venv/
+env/
+
+# Local environment
+.env
+.DS_Store
+
+# Datasets and generated data
+data/raw/
+data/mask_detection/
+outputs/*
+!outputs/.gitkeep
+runs/
+
+# Model weights and exported artifacts
+models/*.pt
+models/*.pth
+models/*.onnx
+models/*.engine
+models/*.tflite
+
+# Logs
+*.log
+

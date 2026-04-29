@@ -1,0 +1,29 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1" />
+    <title>Face Mask Compliance</title>
+    <link rel="stylesheet" href="/static/styles.css" />
+  </head>
+  <body>
+    <main class="app">
+      <section class="stage">
+        <video id="video" autoplay muted playsinline></video>
+        <canvas id="overlay"></canvas>
+      </section>
+      <aside class="panel">
+        <h1>Mask Compliance</h1>
+        <div class="status" id="status">Disconnected</div>
+        <dl class="metrics">
+          <div><dt>Correct</dt><dd id="correct">0</dd></div>
+          <div><dt>Incorrect</dt><dd id="incorrect">0</dd></div>
+          <div><dt>No mask</dt><dd id="no-mask">0</dd></div>
+          <div><dt>Latency</dt><dd id="latency">0 ms</dd></div>
+        </dl>
+      </aside>
+    </main>
+    <script src="/static/app.js"></script>
+  </body>
+</html>
+

@@ -1,0 +1,13 @@
+fastapi
+uvicorn[standard]
+python-multipart
+ultralytics
+opencv-python
+numpy
+pandas
+matplotlib
+pyyaml
+tqdm
+kagglehub
+onnxruntime
+

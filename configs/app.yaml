@@ -1,0 +1,21 @@
+app:
+  name: Real-Time Face Mask Compliance Detection System
+  host: 0.0.0.0
+  port: 8000
+
+model:
+  path: models/best.pt
+  image_size: 640
+  confidence_threshold: 0.35
+  iou_threshold: 0.45
+
+classes:
+  0: correct_mask
+  1: incorrect_mask
+  2: no_mask
+
+runtime:
+  save_violation_snapshots: true
+  snapshot_dir: outputs/snapshots
+  websocket_debug_annotated_frame: false
+

@@ -1,0 +1,12 @@
+services:
+  api:
+    build: .
+    ports:
+      - "8000:8000"
+    environment:
+      APP_CONFIG: configs/app.yaml
+      MODEL_PATH: models/best.pt
+    volumes:
+      - ./models:/app/models
+      - ./outputs:/app/outputs
+
