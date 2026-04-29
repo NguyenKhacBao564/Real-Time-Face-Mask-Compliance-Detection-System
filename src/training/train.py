@@ -1,4 +1,5 @@
 import argparse
+from pathlib import Path
 
 from src.utils.config import load_yaml
 
@@ -13,13 +14,17 @@ def main() -> None:
     from ultralytics import YOLO
 
     model = YOLO(config["model"])
+    project = Path(config["project"])
+    if not project.is_absolute():
+        project = Path.cwd() / project
+
     model.train(
         data=config["data"],
         epochs=int(config["epochs"]),
         imgsz=int(config["image_size"]),
         batch=int(config["batch"]),
         device=config["device"],
-        project=config["project"],
+        project=str(project),
         name=config["name"],
         patience=int(config.get("patience", 15)),
     )
@@ -27,4 +32,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

@@ -21,14 +21,18 @@ CLASS_MAPPING = {
     "with_mask": "correct_mask",
     "mask": "correct_mask",
     "masked_face": "correct_mask",
+    "face_mask": "correct_mask",
     "face_without_mask": "no_mask",
     "without_mask": "no_mask",
     "no-mask": "no_mask",
     "unmasked_face": "no_mask",
+    "face": "no_mask",
     "face_with_mask_incorrect": "incorrect_mask",
+    "incorrect_mask": "incorrect_mask",
     "mask_worn_incorrectly": "incorrect_mask",
     "mask_weared_incorrect": "incorrect_mask",
     "incorrectly_masked_face": "incorrect_mask",
+    "nose": "incorrect_mask",
 }
 
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
@@ -41,11 +45,13 @@ def normalize_label(label: str) -> str | None:
 
 def infer_split(path: Path, rng: random.Random, val_ratio: float, test_ratio: float) -> str:
     parts = {part.lower() for part in path.parts}
-    if {"train", "training"} & parts:
+    if {"train", "training"} & parts or any("train" in part for part in parts):
         return "train"
-    if {"val", "valid", "validation"} & parts:
+    if {"val", "valid", "validation"} & parts or any(
+        "val" in part or "valid" in part for part in parts
+    ):
         return "val"
-    if {"test", "testing"} & parts:
+    if {"test", "testing"} & parts or any("test" in part for part in parts):
         return "test"
 
     value = rng.random()
@@ -56,7 +62,22 @@ def infer_split(path: Path, rng: random.Random, val_ratio: float, test_ratio: fl
     return "train"
 
 
-def find_image(source: Path, xml_path: Path, filename: str) -> Path | None:
+def build_image_index(source: Path) -> dict[str, Path]:
+    index: dict[str, Path] = {}
+    for image_path in source.rglob("*"):
+        if image_path.suffix.lower() not in IMAGE_SUFFIXES:
+            continue
+        index.setdefault(image_path.name, image_path)
+        index.setdefault(image_path.stem, image_path)
+    return index
+
+
+def find_image(
+    source: Path,
+    xml_path: Path,
+    filename: str,
+    image_index: dict[str, Path],
+) -> Path | None:
     candidates = [
         xml_path.parent / filename,
         xml_path.parent.parent / filename,
@@ -66,19 +87,15 @@ def find_image(source: Path, xml_path: Path, filename: str) -> Path | None:
         if candidate.exists():
             return candidate
 
-    matches = list(source.rglob(filename))
-    if matches:
-        return matches[0]
-
     stem = Path(filename).stem
-    for suffix in IMAGE_SUFFIXES:
-        matches = list(source.rglob(f"{stem}{suffix}"))
-        if matches:
-            return matches[0]
-    return None
+    return image_index.get(xml_path.stem) or image_index.get(filename) or image_index.get(stem)
 
 
-def parse_voc_xml(xml_path: Path, source: Path) -> tuple[str, int, int, list[tuple[int, float, float, float, float]]] | None:
+def parse_voc_xml(
+    xml_path: Path,
+    source: Path,
+    image_index: dict[str, Path],
+) -> tuple[str, int, int, list[tuple[int, float, float, float, float]]] | None:
     root = ET.parse(xml_path).getroot()
     filename = root.findtext("filename") or f"{xml_path.stem}.jpg"
 
@@ -114,7 +131,7 @@ def parse_voc_xml(xml_path: Path, source: Path) -> tuple[str, int, int, list[tup
         box_height = (ymax - ymin) / height
         labels.append((CLASS_TO_ID[project_label], x_center, y_center, box_width, box_height))
 
-    image_path = find_image(source, xml_path, filename)
+    image_path = find_image(source, xml_path, filename, image_index)
     if image_path is None:
         return None
     return str(image_path), width, height, labels
@@ -141,12 +158,14 @@ def convert_voc_dataset(source: Path, target: Path, val_ratio: float, test_ratio
     xml_paths = sorted(source.rglob("*.xml"))
     if not xml_paths:
         raise FileNotFoundError(f"No PASCAL VOC XML files found under {source}")
+    image_index = build_image_index(source)
 
     stats = {
         "xml_files": len(xml_paths),
         "converted_images": 0,
         "skipped_xml": 0,
         "empty_label_files": 0,
+        "split_images": {"train": 0, "val": 0, "test": 0},
         "class_counts": {name: 0 for name in CLASS_NAMES.values()},
     }
 
@@ -155,7 +174,7 @@ def convert_voc_dataset(source: Path, target: Path, val_ratio: float, test_ratio
         (target / "labels" / split).mkdir(parents=True, exist_ok=True)
 
     for xml_path in xml_paths:
-        parsed = parse_voc_xml(xml_path, source)
+        parsed = parse_voc_xml(xml_path, source, image_index)
         if parsed is None:
             stats["skipped_xml"] += 1
             continue
@@ -178,6 +197,7 @@ def convert_voc_dataset(source: Path, target: Path, val_ratio: float, test_ratio
         if not lines:
             stats["empty_label_files"] += 1
         stats["converted_images"] += 1
+        stats["split_images"][split] += 1
 
     write_data_yaml(target)
     return stats

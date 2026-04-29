@@ -1,4 +1,5 @@
 import argparse
+import math
 import statistics
 import time
 from pathlib import Path
@@ -13,6 +14,8 @@ def benchmark_images(image_dir: Path, predictor: MaskDetector) -> dict:
     if not image_paths:
         raise ValueError(f"No images found in {image_dir}")
 
+    predictor.predict_image(str(image_paths[0]))
+
     latencies: list[float] = []
     for image_path in image_paths:
         started = time.perf_counter()
@@ -20,12 +23,12 @@ def benchmark_images(image_dir: Path, predictor: MaskDetector) -> dict:
         latencies.append((time.perf_counter() - started) * 1000)
 
     avg_latency = statistics.mean(latencies)
+    sorted_latencies = sorted(latencies)
+    p95_index = min(len(sorted_latencies) - 1, math.ceil(len(sorted_latencies) * 0.95) - 1)
     return {
         "images": len(image_paths),
         "avg_latency_ms": round(avg_latency, 2),
-        "p95_latency_ms": round(statistics.quantiles(latencies, n=20)[18], 2)
-        if len(latencies) >= 20
-        else round(max(latencies), 2),
+        "p95_latency_ms": round(sorted_latencies[p95_index], 2),
         "fps": round(1000 / avg_latency, 2),
     }
 
@@ -43,4 +46,3 @@ def main() -> None:
 
 if __name__ == "__main__":
     main()
-

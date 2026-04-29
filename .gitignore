@@ -25,6 +25,11 @@ outputs/*
 runs/
 
 # Model weights and exported artifacts
+*.pt
+*.pth
+*.onnx
+*.engine
+*.tflite
 models/*.pt
 models/*.pth
 models/*.onnx
@@ -33,4 +38,3 @@ models/*.tflite
 
 # Logs
 *.log
-

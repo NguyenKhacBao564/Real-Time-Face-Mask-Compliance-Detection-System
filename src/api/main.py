@@ -21,10 +21,9 @@ if frontend_dir.exists():
     app.mount("/static", StaticFiles(directory=frontend_dir), name="static")
 
 
-@app.get("/")
-def index() -> FileResponse | dict[str, str]:
+@app.get("/", response_model=None)
+def index():
     index_path = frontend_dir / "index.html"
     if index_path.exists():
         return FileResponse(index_path)
     return {"message": "Face mask detection API is running"}
-

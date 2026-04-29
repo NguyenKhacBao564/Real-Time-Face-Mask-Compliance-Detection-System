@@ -37,17 +37,18 @@ python scripts/audit_dataset.py --dataset data/mask_detection
 Use a very small epoch count just to verify training works:
 
 ```bash
-yolo detect train \
-  model=yolov8n.pt \
-  data=data/mask_detection/data.yaml \
-  epochs=3 \
-  imgsz=512 \
-  batch=8 \
-  project=runs/train \
-  name=smoke_test
+bash scripts/train_smoke.sh
 ```
 
 Do not judge model quality from this run.
+
+If Ultralytics saves runs into an old project, check:
+
+```bash
+yolo settings
+```
+
+The local smoke script uses `project="$(pwd)/runs/train"` to force outputs into this repository.
 
 ## Step 4: Prepare PWMFD For The First Real Model
 

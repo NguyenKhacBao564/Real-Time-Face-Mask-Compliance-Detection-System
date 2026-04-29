@@ -49,7 +49,7 @@ The main risk is `incorrect_mask`. It is a minority class in many public dataset
 
 Notes from source checks:
 
-- PWMFD reports 9,205 images and 18,532 labeled instances, with train/validation splits and three mask-wearing states.
+- PWMFD reports 9,205 images and 18,532 labeled instances, with train/validation splits and three mask-wearing states. Its training split has 7,385 images, 6,702 `withmask`, 9,680 `without_mask`, and 320 `incorrect_mask` instances; validation has 1,820 images, 993 `withmask`, 791 `without_mask`, and 46 `incorrect_mask` instances.
 - FMLD reports 63,072 face images, annotations derived from MAFA and WIDER Face, three mask states, and PASCAL VOC XML annotation files.
 - AIZOO reports 7,971 images from WIDER Face and MAFA for face mask detection, but it is a 2-class direction.
 
@@ -86,14 +86,18 @@ Normalize source labels to the project schema:
 | `with_mask` | `correct_mask` |
 | `mask` | `correct_mask` |
 | `masked_face` | `correct_mask` |
+| `face_mask` | `correct_mask` |
 | `face_without_mask` | `no_mask` |
 | `without_mask` | `no_mask` |
 | `no-mask` | `no_mask` |
 | `unmasked_face` | `no_mask` |
+| `face` | `no_mask` |
 | `face_with_mask_incorrect` | `incorrect_mask` |
+| `incorrect_mask` | `incorrect_mask` |
 | `mask_worn_incorrectly` | `incorrect_mask` |
 | `mask_weared_incorrect` | `incorrect_mask` |
 | `incorrectly_masked_face` | `incorrect_mask` |
+| `nose` | `incorrect_mask` |
 
 ## YOLO Dataset Layout
 

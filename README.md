@@ -162,6 +162,8 @@ data/raw/
 data/mask_detection/
 runs/
 outputs/
+*.pt
+*.onnx
 models/*.pt
 models/*.onnx
 ```
