@@ -23,6 +23,7 @@ data/mask_detection/
 outputs/*
 !outputs/.gitkeep
 runs/
+mask_yolov8n_pwmfd_baseline/
 
 # Model weights and exported artifacts
 *.pt
@@ -35,6 +36,7 @@ models/*.pth
 models/*.onnx
 models/*.engine
 models/*.tflite
+*.zip
 
 # Logs
 *.log

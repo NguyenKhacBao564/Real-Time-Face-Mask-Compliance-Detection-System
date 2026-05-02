@@ -38,6 +38,16 @@ CLASS_MAPPING = {
 IMAGE_SUFFIXES = {".jpg", ".jpeg", ".png", ".bmp", ".webp"}
 
 
+def is_hidden_or_macos_artifact(path: Path) -> bool:
+    parts = set(path.parts)
+    return (
+        "__MACOSX" in parts
+        or path.name == ".DS_Store"
+        or path.name.startswith("._")
+        or any(part.startswith("._") for part in path.parts)
+    )
+
+
 def normalize_label(label: str) -> str | None:
     normalized = label.strip().lower().replace(" ", "_")
     return CLASS_MAPPING.get(normalized)
@@ -65,6 +75,8 @@ def infer_split(path: Path, rng: random.Random, val_ratio: float, test_ratio: fl
 def build_image_index(source: Path) -> dict[str, Path]:
     index: dict[str, Path] = {}
     for image_path in source.rglob("*"):
+        if is_hidden_or_macos_artifact(image_path):
+            continue
         if image_path.suffix.lower() not in IMAGE_SUFFIXES:
             continue
         index.setdefault(image_path.name, image_path)
@@ -155,7 +167,9 @@ def write_data_yaml(target: Path) -> None:
 
 def convert_voc_dataset(source: Path, target: Path, val_ratio: float, test_ratio: float, seed: int) -> dict:
     rng = random.Random(seed)
-    xml_paths = sorted(source.rglob("*.xml"))
+    xml_paths = sorted(
+        path for path in source.rglob("*.xml") if not is_hidden_or_macos_artifact(path)
+    )
     if not xml_paths:
         raise FileNotFoundError(f"No PASCAL VOC XML files found under {source}")
     image_index = build_image_index(source)
