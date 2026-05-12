@@ -38,6 +38,9 @@ class MaskDetector:
             self._model = YOLO(str(self.model_path))
         return self._model
 
+    def load(self) -> None:
+        self._load_model()
+
     def predict_image(self, image_path: str) -> dict:
         started = time.perf_counter()
         model = self._load_model()
@@ -60,4 +63,3 @@ class MaskDetector:
             "counts": count_detections(detections),
             "latency_ms": round(latency_ms, 2),
         }
-

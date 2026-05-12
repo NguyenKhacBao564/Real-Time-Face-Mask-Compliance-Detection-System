@@ -115,6 +115,18 @@ Short version:
 4. Train YOLO from `data/mask_detection/data.yaml`.
 5. Save only metrics, config, and download links in Git; store large weights externally.
 
+## Deployment
+
+Deployment workflow is documented in [DEPLOYMENT.md](DEPLOYMENT.md).
+
+Short version:
+
+```bash
+docker compose up --build
+```
+
+Model weights are mounted from `models/` at runtime. They are not committed to Git and are not baked into the Docker image.
+
 ## Real-Time Target
 
 Use explicit benchmark targets so "real-time" is measurable:

@@ -22,6 +22,65 @@
           <div><dt>FPS</dt><dd id="fps">0.0</dd></div>
           <div><dt>Latency</dt><dd id="latency">0 ms</dd></div>
         </dl>
+        <section class="capture">
+          <h2>Test Capture</h2>
+          <label>
+            Label
+            <select id="capture-label">
+              <option value="correct_mask">correct_mask</option>
+              <option value="incorrect_mask">incorrect_mask</option>
+              <option value="no_mask">no_mask</option>
+            </select>
+          </label>
+          <label>
+            Subtype
+            <select id="capture-subtype">
+              <option value="">none</option>
+              <option value="under_nose">under_nose</option>
+              <option value="under_chin">under_chin</option>
+              <option value="under_neck">under_neck</option>
+              <option value="side_face">side_face</option>
+              <option value="normal">normal</option>
+            </select>
+          </label>
+          <label>
+            Lighting
+            <select id="capture-lighting">
+              <option value="normal">normal</option>
+              <option value="low_light">low_light</option>
+              <option value="backlight">backlight</option>
+              <option value="strong_light">strong_light</option>
+            </select>
+          </label>
+          <label>
+            Occlusion
+            <select id="capture-occlusion">
+              <option value="none">none</option>
+              <option value="hand">hand</option>
+              <option value="arm">arm</option>
+              <option value="partial_face">partial_face</option>
+              <option value="object">object</option>
+            </select>
+          </label>
+          <label>
+            Blur
+            <select id="capture-blur">
+              <option value="none">none</option>
+              <option value="motion_blur">motion_blur</option>
+              <option value="out_of_focus">out_of_focus</option>
+            </select>
+          </label>
+          <label>
+            Reflection
+            <select id="capture-reflection">
+              <option value="none">none</option>
+              <option value="mild">mild</option>
+              <option value="strong">strong</option>
+            </select>
+          </label>
+          <button id="capture-button" type="button">Capture test frame</button>
+          <div class="capture-status" id="capture-status"></div>
+        </section>
         <section class="violations">
           <h2>Violations</h2>
           <ol id="violation-log"></ol>

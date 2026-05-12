@@ -9,6 +9,8 @@ const fpsEl = document.getElementById("fps");
 const latencyEl = document.getElementById("latency");
 const violationLogEl = document.getElementById("violation-log");
 const stageEl = document.querySelector(".stage");
+const captureButton = document.getElementById("capture-button");
+const captureStatusEl = document.getElementById("capture-status");
 
 const captureCanvas = document.createElement("canvas");
 const captureCtx = captureCanvas.getContext("2d");
@@ -98,6 +100,56 @@ function sendFrame() {
   }, "image/jpeg", 0.75);
 }
 
+function captureBlob() {
+  if (!video.videoWidth) {
+    return Promise.reject(new Error("Camera is not ready"));
+  }
+  captureCanvas.width = video.videoWidth;
+  captureCanvas.height = video.videoHeight;
+  captureCtx.drawImage(video, 0, 0, captureCanvas.width, captureCanvas.height);
+  return new Promise((resolve, reject) => {
+    captureCanvas.toBlob((blob) => {
+      if (blob) {
+        resolve(blob);
+      } else {
+        reject(new Error("Could not capture frame"));
+      }
+    }, "image/jpeg", 0.9);
+  });
+}
+
+async function saveTestFrame() {
+  captureButton.disabled = true;
+  captureStatusEl.textContent = "Saving...";
+
+  try {
+    const blob = await captureBlob();
+    const form = new FormData();
+    form.append("file", blob, "webcam.jpg");
+    form.append("label", document.getElementById("capture-label").value);
+    form.append("subtype", document.getElementById("capture-subtype").value);
+    form.append("lighting", document.getElementById("capture-lighting").value);
+    form.append("occlusion", document.getElementById("capture-occlusion").value);
+    form.append("blur", document.getElementById("capture-blur").value);
+    form.append("reflection", document.getElementById("capture-reflection").value);
+    form.append("notes", `prediction=${JSON.stringify(latestDetections)}`);
+
+    const response = await fetch("/api/v1/dataset/capture", {
+      method: "POST",
+      body: form,
+    });
+    const payload = await response.json();
+    if (!response.ok) {
+      throw new Error(payload.detail || "Capture failed");
+    }
+    captureStatusEl.textContent = `Saved ${payload.image_path}`;
+  } catch (error) {
+    captureStatusEl.textContent = error.message;
+  } finally {
+    captureButton.disabled = false;
+  }
+}
+
 async function start() {
   const stream = await navigator.mediaDevices.getUserMedia({ video: true, audio: false });
   video.srcObject = stream;
@@ -135,3 +187,5 @@ async function start() {
 start().catch((error) => {
   statusEl.textContent = error.message;
 });
+
+captureButton.addEventListener("click", saveTestFrame);

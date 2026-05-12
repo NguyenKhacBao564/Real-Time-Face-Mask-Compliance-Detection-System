@@ -72,13 +72,57 @@ h1 {
   padding: 12px 0;
 }
 
+.capture,
 .violations {
   margin-top: 28px;
 }
 
+.capture h2,
 .violations h2 {
   margin: 0 0 10px;
   font-size: 15px;
+}
+
+.capture {
+  display: grid;
+  gap: 10px;
+}
+
+.capture label {
+  display: grid;
+  gap: 4px;
+  color: #52616f;
+  font-size: 13px;
+}
+
+.capture select,
+.capture button {
+  min-height: 34px;
+  border: 1px solid #cfd7df;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #17202a;
+  font: inherit;
+}
+
+.capture button {
+  cursor: pointer;
+  border-color: #1d4ed8;
+  background: #1d4ed8;
+  color: #ffffff;
+  font-weight: 700;
+}
+
+.capture button:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
+.capture-status {
+  min-height: 18px;
+  color: #52616f;
+  font-size: 12px;
+  overflow-wrap: anywhere;
 }
 
 .violations ol {
