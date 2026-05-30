@@ -2,6 +2,20 @@
 
 Project portfolio AI Engineer: train and deploy a real-time face mask compliance detector.
 
+## Live Cloud Run demo
+
+- Web demo: <https://facemask-compliance-szbjef7jsa-as.a.run.app>
+- Health check: <https://facemask-compliance-szbjef7jsa-as.a.run.app/health>
+- Event review API: <https://facemask-compliance-szbjef7jsa-as.a.run.app/api/v1/events?limit=10>
+- REST image inference: `POST https://facemask-compliance-szbjef7jsa-as.a.run.app/api/v1/predict/image`
+- WebSocket webcam inference: `wss://facemask-compliance-szbjef7jsa-as.a.run.app/api/v1/ws/detect`
+
+Latest Cloud Run redeploy smoke test: 2026-05-30. `/health`, REST image
+inference, WebSocket inference, `/api/v1/events`, and
+`/api/v1/events/{event_id}` were verified after deploy. The deployed service is
+configured with `min-instances=0` to avoid idle compute cost, so the first
+request after inactivity may include cold-start latency.
+
 The target is not a notebook-only demo. The project should prove four things:
 
 1. Train or fine-tune an object detection model.
@@ -126,6 +140,17 @@ docker compose up --build
 ```
 
 Model weights are mounted from `models/` at runtime. They are not committed to Git and are not baked into the Docker image.
+
+Cloud Run deployment helper:
+
+```bash
+PROJECT_ID=<your-gcp-project-id> REGION=asia-southeast1 MIN_INSTANCES=0 \
+  ./scripts/deploy_cloudrun.sh
+```
+
+For a demo that should avoid cold starts, set `MIN_INSTANCES=1`. For portfolio
+links that may sit idle, prefer `MIN_INSTANCES=0` and mention possible cold
+start latency.
 
 ## Real-Time Target
 
