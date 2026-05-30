@@ -17,11 +17,22 @@ env/
 .env
 .DS_Store
 
+# Personal application materials and local notes
+CV_*.pdf
+CV_*.tex
+CoverLetter_*.pdf
+CoverLetter_*.tex
+Nguyen_*_CV.*
+interview_prep_*.md
+claudeFeedback.md
+C.jpeg
+*.aux
+*.out
+
 # Datasets and generated data
 data/raw/
 data/mask_detection/
-outputs/*
-!outputs/.gitkeep
+outputs/
 runs/
 mask_yolov8n_pwmfd_baseline/
 
