@@ -19,3 +19,12 @@ runtime:
   snapshot_dir: outputs/snapshots
   websocket_debug_annotated_frame: false
 
+# Event logging for AI-camera-style violation review.
+# All values can be overridden by environment variables (see .env.example).
+events:
+  enabled: true                  # EVENT_LOG_ENABLED
+  confidence_threshold: 0.6      # EVENT_CONFIDENCE_THRESHOLD
+  snapshot_enabled: true         # EVENT_SNAPSHOT_ENABLED
+  snapshot_cooldown_seconds: 3   # EVENT_SNAPSHOT_COOLDOWN_SECONDS
+  output_dir: outputs/events     # EVENT_OUTPUT_DIR (events.jsonl + snapshots/)
+

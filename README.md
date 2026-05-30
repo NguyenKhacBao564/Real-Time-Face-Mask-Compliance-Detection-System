@@ -274,6 +274,155 @@ Target bullet:
 Built and deployed a real-time face mask compliance detection system using YOLO, FastAPI WebSocket, OpenCV, and Docker, supporting live webcam inference with FPS/latency monitoring and violation snapshot logging.
 ```
 
+## System & App Improvements for AI Camera Inference
+
+The detector is wrapped in a small inference service that behaves more like a
+real AI camera monitoring pipeline: every meaningful violation becomes a
+structured **event** with a snapshot, exposed through a lightweight review API.
+None of these changes touch the model — they sit on top of the existing
+FastAPI + WebSocket inference paths.
+
+### Architecture
+
+```text
+Browser webcam / image upload / curl
+              |
+              v
+FastAPI (REST + WebSocket)
+              |
+              v
+YOLOv8n MaskDetector  ──►  detections JSON (class, confidence, bbox, latency)
+              |
+              v
+src/utils/events.py
+  - filters: label ∈ {no_mask, incorrect_mask} AND confidence ≥ threshold
+  - per-(client, label) cooldown
+  - append-only JSONL log
+  - JPEG snapshot of the violation frame
+              |
+              v
+GET /api/v1/events             ── list / filter
+GET /api/v1/events/{id}        ── detail
+GET /api/v1/events/{id}/snapshot ── evidence image
+```
+
+### REST + WebSocket inference flow
+
+* `POST /api/v1/predict/image?client_id=<optional>` — runs inference, then
+  calls the event emitter. Response keeps the original shape and additively
+  includes `frame_width`, `frame_height`, and `events` (a list of event ids,
+  only when violations were emitted).
+* `WS /api/v1/ws/detect?client_id=<optional>` — unchanged response shape. The
+  optional `events` list and the legacy `snapshot_path` field are added only
+  when a violation event was just persisted. If no `client_id` is supplied, the
+  server auto-generates a 12-char `session_id` for logging.
+
+### Event logging behavior
+
+A detection is logged as an event when **all** of the following are true:
+
+* class label is `no_mask` or `incorrect_mask`
+* confidence ≥ `EVENT_CONFIDENCE_THRESHOLD` (default `0.6`)
+* the per-`(client_id, label)` cooldown window has elapsed
+
+Each event row (`outputs/events/events.jsonl`) contains:
+
+```text
+event_id, timestamp (UTC ISO-8601), source (image|websocket),
+label, confidence, bbox, frame_width, frame_height,
+latency_ms, snapshot_path (nullable), client_id, session_id
+```
+
+### Snapshot evidence behavior
+
+* Snapshots are only saved when the event survives the threshold + cooldown
+  filter, never for clean frames.
+* Files land in `outputs/events/snapshots/` with the naming convention
+  `YYYYMMDDThhmmssffffffZ_<label>_<event_id_prefix>.jpg`.
+* `EVENT_SNAPSHOT_COOLDOWN_SECONDS` (default `3s`) caps how often a continuous
+  violation can produce a new snapshot for the same `(client_id, label)` pair.
+* Snapshots can be turned off without disabling event logging via
+  `EVENT_SNAPSHOT_ENABLED=false`.
+
+### Review API examples
+
+```bash
+# Recent events (newest first)
+curl -s 'http://localhost:8000/api/v1/events?limit=10' | jq
+
+# Only no_mask violations from a specific client/session
+curl -s 'http://localhost:8000/api/v1/events?label=no_mask&client_id=demo' | jq
+
+# Time-bounded query
+curl -s 'http://localhost:8000/api/v1/events?start_time=2024-05-30T00:00:00Z' | jq
+
+# Inspect one event
+curl -s http://localhost:8000/api/v1/events/<event_id> | jq
+
+# Download the evidence JPEG
+curl -s http://localhost:8000/api/v1/events/<event_id>/snapshot -o evidence.jpg
+```
+
+### Latency / FPS logging
+
+REST and WebSocket use Python `logging` (no Prometheus). Fields:
+
+* REST per request: `inference_ms`, `request_ms`, `detections`,
+  `violations_emitted`, `client_id`.
+* WebSocket per session: `frames`, rolling `fps` every 50 frames, plus a final
+  `ws_disconnect` log line with total frames, elapsed seconds, average FPS, and
+  total violation events emitted. Each violation batch is also logged
+  separately by the event module (`events_emitted ... count=N labels=...`).
+
+### Configuration
+
+All values read from environment variables (with defaults). See
+[`.env.example`](.env.example) and the `events:` block in
+[`configs/app.yaml`](configs/app.yaml):
+
+| Variable | Default | Purpose |
+| --- | --- | --- |
+| `EVENT_LOG_ENABLED` | `true` | Disable to silence the whole event pipeline. |
+| `EVENT_CONFIDENCE_THRESHOLD` | `0.6` | Minimum confidence to log an event. |
+| `EVENT_SNAPSHOT_ENABLED` | `true` | Turn JPEG snapshots on/off. |
+| `EVENT_SNAPSHOT_COOLDOWN_SECONDS` | `3` | Per-(client, label) cooldown. |
+| `EVENT_OUTPUT_DIR` | `outputs/events` | Holds `events.jsonl` and `snapshots/`. |
+
+### How to run locally
+
+```bash
+pip install -r requirements.txt
+uvicorn src.api.main:app --reload --port 8000
+# open http://localhost:8000/
+```
+
+The Violations panel in the browser frontend now polls `/api/v1/events` every
+3 seconds and shows each persisted event with a `snapshot` link, so the demo
+UI matches what the API actually stores.
+
+### How to test with curl
+
+End-to-end recipes (health, image inference, event listing, snapshot
+retrieval) live in [docs/testing_project2.md](docs/testing_project2.md). Unit
+tests for the event module and the review API:
+
+```bash
+pytest tests/test_events.py -v
+```
+
+### Why this is closer to a production-style AI camera service
+
+* Detections are turned into auditable **events**, not just transient WS
+  messages — a real monitoring workflow needs durable evidence.
+* Snapshots provide reviewable evidence per violation without persisting every
+  frame (privacy- and disk-friendly).
+* The review API is the contract a downstream dashboard, alerting worker, or
+  human reviewer would actually consume.
+* Cooldown + confidence threshold are the same primitives industrial AI camera
+  systems use to keep alert volume sane.
+* Storage stays JSONL on disk, with a single FastAPI worker — easy to migrate
+  to SQLite/Postgres later without changing call sites.
+
 ## References
 
 - [Ultralytics YOLO documentation](https://docs.ultralytics.com/)

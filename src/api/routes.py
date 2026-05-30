@@ -1,13 +1,18 @@
 import tempfile
+import time
 from pathlib import Path
+from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
 
 from src.api.predictor_provider import get_predictor
 from src.inference.predictor import PredictorError
 from src.utils.dataset_capture import save_real_world_sample
+from src.utils.events import emit_events_from_result
+from src.utils.logger import get_logger
 
 router = APIRouter()
+logger = get_logger("api")
 
 
 @router.get("/health")
@@ -16,7 +21,11 @@ def health() -> dict[str, str]:
 
 
 @router.post("/api/v1/predict/image")
-async def predict_image(file: UploadFile = File(...)) -> dict:
+async def predict_image(
+    file: UploadFile = File(...),
+    client_id: Optional[str] = Query(None, description="Optional client/session id"),
+) -> dict:
+    request_started = time.perf_counter()
     suffix = Path(file.filename or "upload.jpg").suffix or ".jpg"
     image_bytes = await file.read()
 
@@ -24,11 +33,30 @@ async def predict_image(file: UploadFile = File(...)) -> dict:
         tmp.write(image_bytes)
         tmp.flush()
         try:
-            return get_predictor().predict_image(tmp.name)
+            result = get_predictor().predict_image(tmp.name)
         except FileNotFoundError as exc:
             raise HTTPException(status_code=503, detail=str(exc)) from exc
         except PredictorError as exc:
             raise HTTPException(status_code=500, detail=str(exc)) from exc
+
+    events = emit_events_from_result(
+        result,
+        source="image",
+        image_bytes=image_bytes,
+        client_id=client_id,
+    )
+
+    request_latency_ms = round((time.perf_counter() - request_started) * 1000, 2)
+    logger.info(
+        "rest_predict source=image client_id=%s inference_ms=%s request_ms=%s "
+        "detections=%d violations_emitted=%d",
+        client_id or "-",
+        result.get("latency_ms"),
+        request_latency_ms,
+        len(result.get("detections") or []),
+        len(events),
+    )
+    return result
 
 
 @router.post("/api/v1/dataset/capture")

@@ -54,12 +54,23 @@ class MaskDetector:
         )
         if not results:
             detections: list[dict] = []
+            frame_height: int | None = None
+            frame_width: int | None = None
         else:
             detections = parse_ultralytics_result(results[0])
+            orig_shape = getattr(results[0], "orig_shape", None)
+            if orig_shape is not None and len(orig_shape) >= 2:
+                frame_height = int(orig_shape[0])
+                frame_width = int(orig_shape[1])
+            else:
+                frame_height = None
+                frame_width = None
 
         latency_ms = (time.perf_counter() - started) * 1000
         return {
             "detections": detections,
             "counts": count_detections(detections),
             "latency_ms": round(latency_ms, 2),
+            "frame_width": frame_width,
+            "frame_height": frame_height,
         }

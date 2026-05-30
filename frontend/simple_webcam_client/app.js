@@ -69,20 +69,35 @@ function updateMetrics(payload) {
   latencyEl.textContent = `${payload.latency_ms || 0} ms`;
 }
 
-function addViolationLog(payload) {
-  const counts = payload.counts || {};
-  const violations = (counts.incorrect_mask || 0) + (counts.no_mask || 0);
-  if (!violations) {
-    return;
-  }
-
-  const item = document.createElement("li");
-  const time = new Date().toLocaleTimeString();
-  item.textContent = `${time} - incorrect: ${counts.incorrect_mask || 0}, no mask: ${counts.no_mask || 0}`;
-  violationLogEl.prepend(item);
-
-  while (violationLogEl.children.length > 8) {
-    violationLogEl.removeChild(violationLogEl.lastElementChild);
+async function refreshViolationEvents() {
+  try {
+    const response = await fetch("/api/v1/events?limit=5");
+    if (!response.ok) {
+      return;
+    }
+    const payload = await response.json();
+    const events = payload.events || [];
+    violationLogEl.innerHTML = "";
+    for (const event of events) {
+      const item = document.createElement("li");
+      const time = new Date(event.timestamp).toLocaleTimeString();
+      const confidence = (event.confidence * 100).toFixed(0);
+      const meta = document.createElement("span");
+      meta.textContent = `${time} - ${event.label} ${confidence}%`;
+      item.appendChild(meta);
+      if (event.snapshot_path) {
+        const link = document.createElement("a");
+        link.href = `/api/v1/events/${event.event_id}/snapshot`;
+        link.target = "_blank";
+        link.rel = "noopener";
+        link.textContent = "snapshot";
+        link.style.marginLeft = "6px";
+        item.appendChild(link);
+      }
+      violationLogEl.appendChild(item);
+    }
+  } catch (error) {
+    // Non-fatal: panel will retry on the next tick.
   }
 }
 
@@ -175,7 +190,6 @@ async function start() {
     }
     latestDetections = payload.detections || [];
     updateMetrics(payload);
-    addViolationLog(payload);
     drawDetections();
   });
 
@@ -189,3 +203,6 @@ start().catch((error) => {
 });
 
 captureButton.addEventListener("click", saveTestFrame);
+
+refreshViolationEvents();
+setInterval(refreshViolationEvents, 3000);
