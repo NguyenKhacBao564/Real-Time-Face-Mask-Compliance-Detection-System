@@ -48,6 +48,7 @@ class StreamManager:
         async with self._lock:
             state = StreamState(stream_id=stream_id, websocket=websocket)
             self._streams[stream_id] = state
+            active_streams.inc()
             return state
 
     async def remove_stream(self, stream_id: str) -> StreamState | None:
