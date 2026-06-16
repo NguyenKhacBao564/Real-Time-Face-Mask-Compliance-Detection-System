@@ -13,6 +13,7 @@ from src.api.websocket import router as websocket_router
 from src.multistream.batch_worker import _WorkItem, batch_worker_loop
 from src.multistream.routes import router as multistream_router, configure as configure_multistream
 from src.multistream.stream_manager import StreamManager
+from src.api.gpu_monitor import monitor_gpu_loop
 from src.utils.config import load_app_config
 from src.utils.logger import get_logger
 
