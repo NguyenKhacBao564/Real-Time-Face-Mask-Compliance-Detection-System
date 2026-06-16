@@ -25,6 +25,15 @@ from typing import Any
 
 import numpy as np
 
+from src.api.metrics import (
+    batch_latency_seconds,
+    current_batch_size,
+    end_to_end_latency_seconds,
+    frames_processed_total,
+    inference_batches_total,
+    inference_latency_seconds,
+    queue_depth as metrics_queue_depth,
+)
 from src.multistream.stream_manager import StreamManager
 from src.utils.logger import get_logger
 
