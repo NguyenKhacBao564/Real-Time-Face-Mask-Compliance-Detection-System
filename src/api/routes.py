@@ -3,7 +3,8 @@ import time
 from pathlib import Path
 from typing import Optional
 
-from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile
+from fastapi import APIRouter, File, Form, HTTPException, Query, UploadFile, Response
+from prometheus_client import generate_latest
 
 from src.api.predictor_provider import get_predictor
 from src.inference.predictor import PredictorError
