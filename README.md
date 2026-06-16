@@ -10,7 +10,7 @@ Project portfolio AI Engineer: train and deploy a real-time face mask compliance
 - REST image inference: `POST https://facemask-compliance-szbjef7jsa-as.a.run.app/api/v1/predict/image`
 - WebSocket webcam inference: `wss://facemask-compliance-szbjef7jsa-as.a.run.app/api/v1/ws/detect`
 
-Latest Cloud Run redeploy smoke test: 2026-05-30. `/health`, REST image
+Latest Cloud Run redeploy smoke test: 2026-06-08. `/health`, REST image
 inference, WebSocket inference, `/api/v1/events`, and
 `/api/v1/events/{event_id}` were verified after deploy. The deployed service is
 configured with `min-instances=0` to avoid idle compute cost, so the first
