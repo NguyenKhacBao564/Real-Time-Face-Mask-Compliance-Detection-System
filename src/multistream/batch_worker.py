@@ -184,20 +184,31 @@ async def batch_worker_loop(
             continue
 
         batch_latency_ms = round((time.perf_counter() - t0) * 1000, 2)
-        queue_depth = queue.qsize()
+        q_depth = queue.qsize()
+
+        inference_batches_total.inc()
+        batch_latency_seconds.observe(batch_latency_ms / 1000.0)
+        current_batch_size.set(batch_size)
+        metrics_queue_depth.set(q_depth)
 
         logger.info(
             "batch_inferred batch_size=%d batch_latency_ms=%.2f "
             "queue_depth=%d avg_per_frame_ms=%.2f",
             batch_size,
             batch_latency_ms,
-            queue_depth,
+            q_depth,
             round(batch_latency_ms / batch_size, 2),
         )
 
         # Route each result back to the originating stream.
         for item, result in zip(real_items, results):
-            latency_ms = round((time.perf_counter() - item.enqueue_time) * 1000, 2)
+            latency_sec = time.perf_counter() - item.enqueue_time
+            latency_ms = round(latency_sec * 1000, 2)
+            
+            frames_processed_total.labels(stream_id=item.stream_id).inc()
+            inference_latency_seconds.observe((batch_latency_ms / batch_size) / 1000.0)
+            end_to_end_latency_seconds.observe(latency_sec)
+            
             result["stream_id"] = item.stream_id
             result["latency_ms"] = latency_ms
             result["batch_latency_ms"] = batch_latency_ms

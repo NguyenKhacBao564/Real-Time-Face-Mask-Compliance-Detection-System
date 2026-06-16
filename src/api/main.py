@@ -63,6 +63,7 @@ def startup() -> None:
             collect_timeout_s=collect_timeout_ms / 1000.0,
         )
     )
+    asyncio.get_event_loop().create_task(monitor_gpu_loop())
     logger.info(
         "multi-stream worker started max_batch=%d collect_timeout_ms=%d",
         max_batch,

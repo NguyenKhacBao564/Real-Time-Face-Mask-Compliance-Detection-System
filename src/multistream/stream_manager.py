@@ -11,6 +11,8 @@ import time
 from dataclasses import dataclass, field
 from typing import Any
 
+from src.api.metrics import active_streams
+
 
 @dataclass
 class StreamState:
@@ -67,3 +69,5 @@ class StreamManager:
     def active_count(self) -> int:
         # Intentionally lock-free for fast logging; occasional stale read is fine.
         return sum(1 for s in self._streams.values() if s.status == "active")
+)
+e")

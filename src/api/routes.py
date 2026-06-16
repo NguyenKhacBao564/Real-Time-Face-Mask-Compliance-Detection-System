@@ -20,6 +20,11 @@ def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
+@router.get("/metrics")
+def get_metrics():
+    return Response(content=generate_latest(), media_type="text/plain")
+
+
 @router.post("/api/v1/predict/image")
 async def predict_image(
     file: UploadFile = File(...),
