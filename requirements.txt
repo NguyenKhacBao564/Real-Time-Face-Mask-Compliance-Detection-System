@@ -11,3 +11,4 @@ tqdm
 kagglehub
 onnxruntime
 
+prometheus-client
