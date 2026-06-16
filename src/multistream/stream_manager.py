@@ -55,7 +55,7 @@ class StreamManager:
             state = self._streams.pop(stream_id, None)
         if state is not None:
             state.status = "disconnected"
-        active_streams.set(self.active_count)
+            active_streams.dec()
         return state
 
     async def list_active(self) -> list[StreamState]:
@@ -70,3 +70,4 @@ class StreamManager:
     def active_count(self) -> int:
         # Intentionally lock-free for fast logging; occasional stale read is fine.
         return sum(1 for s in self._streams.values() if s.status == "active")
+lf._streams.values() if s.status == "active")
